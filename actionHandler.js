@@ -19,9 +19,40 @@ function handle(id, action) {
       removePaletteFromStore(id, action.payload);
       break;
     case ActionType.UPDATE_PALETTE_FOODNAME:
-      console.log("CHANGE PALETTE NAME");
-      changePaletteName(id, action.payload);
+      console.log("UPDATE PALETTE NAME");
+      updatePaletteNameInStore(id, action.payload);
       break;
+    case ActionType.UPDATE_DISH_PRICE:
+      console.log("UPDATE DISH PRICE");
+      updateDishPriceInStore(id, action.payload);
+      break;
+    case ActionType.UPDATE_PARTICIPANT_PRICE:
+      console.log("UPDATE PARTICIPANT PRICE");
+      updateParticipantPriceInStore(id, action.payload);
+      break;
+    case ActionType.RESET_PALETTE_DEFAULT_PRICE:
+      console.log("RESET PALETTE PRICE");
+      resetPalettePriceInStore(id, action.payload);
+      break;
+    case ActionType.SPLIT_EVENLY:
+      console.log("SPLIT EVENLY");
+      splitPaletteEvenlyInStore(id, action.payload);
+      break;
+    case ActionType.CLEAR_PALETTE_PARTICIPANTS:
+      console.log("CLEAR PALETTE PARTICIPANTS");
+      clearPaletteParticipantsInStore(id, action.payload);
+      break;
+    case ActionType.ADD_PROFILE:
+      console.log("ADD PROFILE");
+      addProfileToStore(id, action.payload);
+      break;
+    case ActionType.REMOVE_PROFILE:
+      console.log("REMOVE PROFILE");
+      removeProfileFromStore(id, action.payload);
+      break;
+    case ActionType.UPDATE_TAX_DISCOUNT:
+      console.log("UPDATE TAX DISCOUNT");
+      updateTaxDiscountInStore(id, action.payload);
     default:
       break;
   }
@@ -75,13 +106,92 @@ function removePaletteFromStore(id, payload) {
   );
 }
 
-function changePaletteName(id,payload){
-    const palette = rooms[id].palettes.find(
-    (palette) => palette.id === paletteId
+function updatePaletteNameInStore(id, payload) {
+  const palette = rooms[id].palettes.find(
+    (palette) => palette.id === payload.id
   );
-  //palette.
+  if(palette){
+    palette.name = payload.name
+  }
 }
 
-module.exports = {
-  handle,
-};
+function updateDishPriceInStore(id, payload){
+  const palette = rooms[id].palettes.find(
+    (palette) => palette.id === payload.id
+  );
+  if(palette){
+    palette.price = payload.price
+    updateParticipantPrices(palette, payload.price)
+  }
+}
+
+function updateParticipantPrices(palette, price){
+  palette.participants.forEach((participant) => {
+    participant.contribution = price
+  });
+}
+
+function updateParticipantPriceInStore(id, payload){
+  const palette = rooms[id].palettes.find(
+    (palette) => palette.id === payload.id
+  );
+  if(palette){
+    const participant = palette.participants.find(
+      (participant) => participant.profile.name === payload.name
+    );
+    if(participant){
+      participant.contribution = payload.contribution;
+    }
+  }
+}
+
+function resetPalettePriceInStore(id, payload)
+{
+  const palette = rooms[id].palettes.find(
+    (palette) => palette.id === payload.id
+  );
+  if(palette){
+    updateParticipantPrices(palette, palette.price);
+  }
+}
+
+function splitPaletteEvenlyInStore(id, payload){
+  const palette = rooms[id].palettes.find(
+    (palette) => palette.id === payload.id
+  );
+  if(palette){
+    let splitPrice = Math.round((palette.price / palette.participants.length) * 100) / 100;
+    updateParticipantPrices(palette, splitPrice);
+  }
+}
+
+function clearPaletteParticipantsInStore(id, payload){
+  const palette = rooms[id].palettes.find(
+    (palette) => palette.id === payload.id
+  );
+  if(palette){
+    palette.participants = [];
+  }
+}
+
+function addProfileToStore(id, payload){
+  rooms[id].profiles.push({
+    hue: payload.profile.hue,
+    name: payload.profile.name
+  });
+}
+
+function removeProfileFromStore(id, payload){
+  rooms[id].profiles = rooms[id].profiles.filter(
+    (profile) => profile.name !== payload.name
+  );
+}
+
+function updateTaxDiscountInStore(id, payload){
+  rooms[id].tax = payload.tax;
+  rooms[id].discount = payload.discount;
+}
+
+  module.exports = {
+    handle,
+  };
