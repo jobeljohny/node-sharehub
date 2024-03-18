@@ -1,0 +1,2 @@
+rooms={}
+module.exports=rooms;
