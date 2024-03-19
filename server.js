@@ -1,5 +1,10 @@
 const express = require("express");
 const http = require("http");
+const {
+  uniqueNamesGenerator,
+  adjectives,
+  animals,
+} = require("unique-names-generator");
 const bodyParser = require("body-parser");
 
 rooms = require("./data");
@@ -21,12 +26,12 @@ const io = require("socket.io")(server, {
 });
 
 function getID() {
-  let outString = "";
-  let inOptions = "abcdefghijklmnopqrstuvwxyz";
-  for (let i = 0; i < 6; i++) {
-    outString += inOptions.charAt(Math.floor(Math.random() * inOptions.length));
-  }
-  return outString;
+  const roomName = uniqueNamesGenerator({
+    dictionaries: [adjectives, animals],
+    
+    length: 2,
+  });
+  return roomName;
 }
 
 io.on("connection", (socket) => {
@@ -35,14 +40,18 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", (creds) => {
     socket.join(creds.roomId);
     if (rooms[creds.roomId]) {
-      // io.to(roomId).emit('updateData', rooms[roomId]);
+      rooms[creds.roomId]["users"].push(creds.user);
+      io.to(creds.roomId).emit("connectionInfo", {
+        id: creds.user.userId,
+        message: `${creds.user.username} has joined the room.`,
+      });
     }
   });
   socket.on("update", (data) => {
     console.log("recieved update");
     handle(data.id, JSON.parse(data.data));
     //rooms[data.id]=data.data;
-    io.to(data.id).emit("updateData", { id: data.userId, action: data.data });
+    io.to(data.id).emit("updateData", { id: data.user, action: data.data });
   });
 });
 const corsOptions = {
@@ -54,6 +63,9 @@ app.use(cors(corsOptions));
 app.post("/createRoom", (req, res) => {
   const roomId = getID();
   rooms[roomId] = JSON.parse(req.body["data"]);
+  rooms[roomId]["users"] = [];
+  console.log(rooms);
+
   res.send({ roomId: roomId });
 });
 
